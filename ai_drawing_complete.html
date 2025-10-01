@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>感情お絵描きAI - Emotion Drawing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .canvas-wrapper {
+            text-align: center;
+        }
+        
+        .canvas-wrapper h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        canvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            cursor: crosshair;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .prediction {
+            text-align: center;
+            padding: 30px;
+            background: #f0f4ff;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .prediction h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .emotion-icon {
+            font-size: 5em;
+            margin: 20px 0;
+            animation: bounce 0.5s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .emotion-name {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .emotion-description {
+            font-size: 1.1em;
+            color: #666;
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        .info h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .info p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+            }
+            
+            .emotion-icon {
+                font-size: 3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💭 感情お絵描きAI</h1>
+        <p class="subtitle">自由に線を描いて、あなたの今の気持ちを知ろう！</p>
+        
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <h3>🎨 自由に描いてね</h3>
+                <canvas id="canvas" width="400" height="400"></canvas>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="clearBtn">🗑️ クリア</button>
+            <button id="predictBtn">🔮 感情を読み取る</button>
+        </div>
+        
+        <div class="prediction" id="prediction" style="display: none;">
+            <h3>あなたの今の気持ちは...</h3>
+            <div class="emotion-icon" id="emotionIcon">😊</div>
+            <div class="emotion-name" id="emotionName">ハッピー</div>
+            <div class="emotion-description" id="emotionDescription">
+                明るく前向きな気持ちですね！
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">線の勢い</div>
+                    <div class="stat-value" id="speedStat">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">複雑さ</div>
+                    <div class="stat-value" id="complexityStat">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">筆圧感</div>
+                    <div class="stat-value" id="pressureStat">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info">
+            <h4>💡 使い方</h4>
+            <p>
+                1. 今の気分のまま、キャンバスに自由に線を描いてください<br>
+                2. 「感情を読み取る」ボタンを押してください<br>
+                3. AIがあなたの描き方から感情を分析します<br>
+                <br>
+                <strong>ヒント：</strong> 
+                • 速く描く→エネルギッシュ<br>
+                • ゆっくり描く→落ち着いている<br>
+                • ぐちゃぐちゃ→モヤモヤ<br>
+                • 滑らか→リラックス
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let isDrawing = false;
+        let canvas, ctx;
+        let strokes = [];
+        let currentStroke = [];
+        let lastTime = 0;
+        let speeds = [];
+        
+        const emotions = {
+            happy: {
+                icon: '😊',
+                name: 'ハッピー',
+                description: '明るく前向きな気持ちですね！エネルギーに満ちています。',
+                color: '#FFD700'
+            },
+            calm: {
+                icon: '😌',
+                name: 'リラックス',
+                description: '心が落ち着いていますね。穏やかな気分です。',
+                color: '#87CEEB'
+            },
+            excited: {
+                icon: '🤩',
+                name: 'ワクワク',
+                description: '興奮していますね！何か楽しいことがありそう！',
+                color: '#FF69B4'
+            },
+            frustrated: {
+                icon: '😤',
+                name: 'モヤモヤ',
+                description: '少しイライラしているかも。深呼吸してみましょう。',
+                color: '#FF6347'
+            },
+            sad: {
+                icon: '😢',
+                name: 'しょんぼり',
+                description: '少し落ち込んでいるようです。無理しないでくださいね。',
+                color: '#4682B4'
+            },
+            focused: {
+                icon: '🧐',
+                name: '集中',
+                description: '何かに集中していますね。真剣な気持ちです。',
+                color: '#9370DB'
+            },
+            confused: {
+                icon: '😵',
+                name: 'こんがらがり',
+                description: '頭の中が混乱しているかも。整理してみましょう。',
+                color: '#FFA500'
+            },
+            peaceful: {
+                icon: '🕊️',
+                name: '平和',
+                description: '心が穏やかで平和な状態ですね。素晴らしい！',
+                color: '#98FB98'
+            }
+        };
+        
+        function init() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+            document.getElementById('predictBtn').addEventListener('click', analyzeEmotion);
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            currentStroke = [];
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            currentStroke.push({x, y, time: Date.now()});
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            lastTime = Date.now();
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const currentTime = Date.now();
+            
+            const lastPoint = currentStroke[currentStroke.length - 1];
+            const distance = Math.sqrt(Math.pow(x - lastPoint.x, 2) + Math.pow(y - lastPoint.y, 2));
+            const timeDiff = currentTime - lastTime;
+            const speed = distance / (timeDiff || 1);
+            speeds.push(speed);
+            
+            currentStroke.push({x, y, time: currentTime});
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            lastTime = currentTime;
+        }
+        
+        function stopDrawing() {
+            if (isDrawing && currentStroke.length > 0) {
+                strokes.push([...currentStroke]);
+            }
+            isDrawing = false;
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+        
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            strokes = [];
+            speeds = [];
+            document.getElementById('prediction').style.display = 'none';
+        }
+        
+        function analyzeEmotion() {
+            if (strokes.length === 0) {
+                alert('まず何か描いてください！');
+                return;
+            }
+            
+            const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+            const totalPoints = strokes.reduce((sum, stroke) => sum + stroke.length, 0);
+            const coverage = calculateCoverage();
+            const straightness = calculateStraightness();
+            
+            let emotion;
+            
+            if (avgSpeed > 2 && strokes.length > 10) {
+                emotion = emotions.frustrated;
+            } else if (avgSpeed > 1.5 && coverage > 0.3) {
+                emotion = emotions.excited;
+            } else if (avgSpeed > 1 && straightness > 0.7) {
+                emotion = emotions.happy;
+            } else if (avgSpeed < 0.5 && straightness > 0.6) {
+                emotion = emotions.calm;
+            } else if (coverage < 0.1 && avgSpeed < 0.7) {
+                emotion = emotions.sad;
+            } else if (strokes.length > 15 && coverage > 0.4) {
+                emotion = emotions.confused;
+            } else if (straightness > 0.8 && avgSpeed < 1) {
+                emotion = emotions.focused;
+            } else {
+                emotion = emotions.peaceful;
+            }
+            
+            displayEmotion(emotion, avgSpeed, strokes.length, coverage);
+        }
+        
+        function calculateCoverage() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let filledPixels = 0;
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                if (imageData.data[i] < 250) {
+                    filledPixels++;
+                }
+            }
+            return filledPixels / (canvas.width * canvas.height);
+        }
+        
+        function calculateStraightness() {
+            if (strokes.length === 0) return 0;
+            
+            let totalStraightness = 0;
+            for (const stroke of strokes) {
+                if (stroke.length < 3) continue;
+                
+                const start = stroke[0];
+                const end = stroke[stroke.length - 1];
+                const directDistance = Math.sqrt(
+                    Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2)
+                );
+                
+                let pathDistance = 0;
+                for (let i = 1; i < stroke.length; i++) {
+                    pathDistance += Math.sqrt(
+                        Math.pow(stroke[i].x - stroke[i-1].x, 2) + 
+                        Math.pow(stroke[i].y - stroke[i-1].y, 2)
+                    );
+                }
+                
+                totalStraightness += directDistance / (pathDistance || 1);
+            }
+            
+            return totalStraightness / strokes.length;
+        }
+        
+        function displayEmotion(emotion, speed, complexity, coverage) {
+            const predictionDiv = document.getElementById('prediction');
+            predictionDiv.style.display = 'block';
+            predictionDiv.style.background = emotion.color + '22';
+            
+            document.getElementById('emotionIcon').textContent = emotion.icon;
+            document.getElementById('emotionName').textContent = emotion.name;
+            document.getElementById('emotionName').style.color = emotion.color;
+            document.getElementById('emotionDescription').textContent = emotion.description;
+            
+            const speedLevel = speed > 1.5 ? '高速' : speed > 0.8 ? '普通' : '低速';
+            const complexityLevel = complexity > 15 ? '複雑' : complexity > 8 ? '普通' : 'シンプル';
+            const coverageLevel = coverage > 0.3 ? '広範囲' : coverage > 0.15 ? '中程度' : '狭い';
+            
+            document.getElementById('speedStat').textContent = speedLevel;
+            document.getElementById('complexityStat').textContent = complexityLevel;
+            document.getElementById('pressureStat').textContent = coverageLevel;
+        }
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
