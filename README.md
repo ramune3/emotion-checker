@@ -8,5 +8,4 @@
 ※全てClaude Sonnet 4.5によるコード生成です。
 プロンプトによる調整や作成をしました。
 
-ここからPlayできます；
-
+ここからPlayできます；https://ramune3.github.io/emotion-checker/ai_drawing_complete.html
